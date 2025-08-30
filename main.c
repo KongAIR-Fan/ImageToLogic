@@ -836,7 +836,7 @@ int WinMain(void)
 
 			// 网址跳转
 			if (state % 10 == 6)
-				OpenURL("https://cn.bing.com");
+				OpenURL("https://github.com/KongAIR-Fan/ImageToLogic");
 
 			//记录状态,避免重复切换
 			lastState = state;
