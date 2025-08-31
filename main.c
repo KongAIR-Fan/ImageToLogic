@@ -230,8 +230,6 @@ int WinMain(void)
 	SetExitKey(KEY_NULL);
 	SetTraceLogLevel(LOG_ERROR);
 
-	Font font = LoadFontEx("./res/fonts/font.ttf", 64, 0, 0);
-
 	// 按钮文本
 	char buttonText[7][40] = {
 		{"Import image"},
@@ -251,14 +249,15 @@ int WinMain(void)
 		{" Nearest"}
 	};
 
-	Texture background = LoadTexture("./res/backgrounds/windowBack.png");			//窗口背景
-	Texture middleDisplayBack = LoadTexture("./res/backgrounds/middleBack.png");	//中型逻辑显示屏背景
-	Texture middleDisplayFront = LoadTexture("./res/displays/middleFront.png");		//中型逻辑显示屏前景
-	Texture largeDisplayBack = LoadTexture("./res/backgrounds/largeBack.png");		//大型逻辑显示屏背景
-	Texture largeDisplayFront = LoadTexture("./res/displays/largeFront.png");		//大型逻辑显示屏前景
+	Font font = LoadFontEx("./res/font/font.ttf", 64, 0, 0);						//Mindustry样式字体
+	Texture background = LoadTexture("./res/background/windowBack.png");			//窗口背景
+	Texture middleDisplayBack = LoadTexture("./res/background/middleBack.png");		//中型逻辑显示屏背景
+	Texture middleDisplayFront = LoadTexture("./res/display/middleFront.png");		//中型逻辑显示屏前景
+	Texture largeDisplayBack = LoadTexture("./res/background/largeBack.png");		//大型逻辑显示屏背景
+	Texture largeDisplayFront = LoadTexture("./res/display/largeFront.png");		//大型逻辑显示屏前景
 
-	Image image = { 0 };		//原始图像
-	Image newImage = { 0 };		//缩放后的新图像
+	Image image = { 0 };			//原始图像
+	Image newImage = { 0 };			//缩放后的新图像
 
 	// 选项变量
 	int displayType = 0;			//逻辑显示屏类型  0:中型 1:大型

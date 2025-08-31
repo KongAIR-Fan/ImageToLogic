@@ -13,13 +13,16 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="资源文件\backgrounds">
+    <Filter Include="资源文件\icon">
+      <UniqueIdentifier>{1cbc7cd2-a606-44d5-80f5-599c634eb615}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\background">
       <UniqueIdentifier>{47c2d429-2158-425d-885d-b2c688045158}</UniqueIdentifier>
     </Filter>
-    <Filter Include="资源文件\displays">
+    <Filter Include="资源文件\display">
       <UniqueIdentifier>{19e413dc-b2e2-4c67-82c8-d9e4c1d0f9bf}</UniqueIdentifier>
     </Filter>
-    <Filter Include="资源文件\fonts">
+    <Filter Include="资源文件\font">
       <UniqueIdentifier>{7106f672-e7c4-4732-9f8c-e7a23f4072e3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -33,24 +36,49 @@
   </ItemGroup>
   <ItemGroup>
     <Font Include="res\fonts\font.ttf">
-      <Filter>资源文件\fonts</Filter>
+      <Filter>资源文件\font</Filter>
     </Font>
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\displays\largeFront.png">
-      <Filter>资源文件\displays</Filter>
+      <Filter>资源文件\display</Filter>
     </Image>
     <Image Include="res\displays\middleFront.png">
-      <Filter>资源文件\displays</Filter>
+      <Filter>资源文件\display</Filter>
     </Image>
     <Image Include="res\backgrounds\largeBack.png">
-      <Filter>资源文件\backgrounds</Filter>
+      <Filter>资源文件\background</Filter>
     </Image>
     <Image Include="res\backgrounds\middleBack.png">
-      <Filter>资源文件\backgrounds</Filter>
+      <Filter>资源文件\background</Filter>
     </Image>
     <Image Include="res\backgrounds\windowBack.png">
-      <Filter>资源文件\backgrounds</Filter>
+      <Filter>资源文件\background</Filter>
     </Image>
+    <Image Include="icon\IDI_MAINFRAME.ico">
+      <Filter>资源文件\icon</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource3.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource4.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ImageToLogic.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
