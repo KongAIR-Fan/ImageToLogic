@@ -13,7 +13,7 @@ tinyfiledialogs: https://sourceforge.net/projects/tinyfiledialogs/
 <img width="1082" height="811" alt="1" src="https://github.com/user-attachments/assets/dff56a75-00df-4632-aef6-44c2d88131f8" />
  <br> <br> <br> 
 2. Use the following four buttons to adjust parameters. You can preview the adjusted image on the left.
-(Note: Due to the limit of 999 lines of logic code per processor in Mindustry, the image will be compressed to avoid exceeding this limit, which may result in lower actual rendering quality compared to the preview).
+(Note: Due to the limit of 999 lines of logic code per processor in Mindustry, the image will be compressed to avoid exceeding this limit, which may result in lower actual drawing quality compared to the preview).
  <br> <br> 
 <img width="1082" height="811" alt="2" src="https://github.com/user-attachments/assets/d8f0b187-0ed5-4098-824c-f29ff1d674e7" />
  <br> <br> <br> 
