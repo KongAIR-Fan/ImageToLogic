@@ -223,6 +223,191 @@ static float GetColorSimilarity(Color color1, Color color2)
 	return distance;
 }
 
+// 获取颜色相似阈值
+static float GetColorSimilarityThreshold(Image image, float initialValue)
+{
+	int logicNumber = 1000;
+	float similarityThreshold = initialValue - 0.5;
+
+	while (logicNumber > 998)
+	{
+		// 迭代
+		logicNumber = 0;				//重置逻辑数量计数
+		similarityThreshold += 0.5;		//增加相似范围
+
+		bool isFlushed = 0;
+
+		// 计算逻辑代码数量
+		for (int y = 0; y < image.height; y++)
+		{
+			int similarNumber = 0;			//相似像素数量
+			Color pixelColor = { 0 };		//当前像素颜色
+			Color lastPixelColor = { 0 };	//上一个不同的像素颜色
+			isFlushed = 0;					//重置刷新标记
+
+			for (int x = 0; x < image.width; x++)
+			{
+				// 获取当前像素颜色
+				pixelColor = GetImageColor(image, x, y);
+
+				// 行首初始化
+				if (x == 0)
+				{
+					lastPixelColor = pixelColor;
+					similarNumber = 1;
+
+					// 跳过当前循环, 等待下一个像素
+					continue;
+				}
+
+				// 获取颜色相似度
+				float similarityValue = GetColorSimilarity(pixelColor, lastPixelColor);
+
+				// 判断像素颜色相似度
+				if (similarityValue <= similarityThreshold)
+				{
+					// 增加相似像素计数
+					similarNumber += 1;
+				}
+				else
+				{
+					// 增加逻辑数量计数
+					logicNumber += 2;
+
+					// 重置记数与记录
+					lastPixelColor = pixelColor;
+					similarNumber = 1;
+				}
+
+				// 行尾绘制
+				if (x == image.width - 1)
+					logicNumber += 2;
+			}
+
+			// 刷新绘制缓冲区 (逻辑代码)
+			if ((y + 1) % 2 == 0)
+			{
+				logicNumber += 1;
+
+				// 标记已刷新
+				isFlushed = 1;
+			}
+		}
+	}
+
+	// 返回相似阈值
+	return similarityThreshold;
+}
+
+// 生成逻辑代码
+static void GenerateLogic(FILE* logicFile, Image image, Rectangle rectangle, Vector2 imagePos, int displayX, int displayY, int pixelSize, float similarityThreshold)
+{
+	int isFlushed = 0;
+
+	// 生成逻辑代码
+	for (int y = 0; y < image.height; y++)
+	{
+		int similarNumber = 0;			//相似像素数量
+		int recordX = 0;				//相似像素的起始X坐标
+		Color pixelColor = { 0 };		//当前像素颜色
+		Color lastPixelColor = { 0 };	//上一个不同的像素颜色
+		isFlushed = 0;					//重置刷新标记
+
+		for (int x = 0; x < image.width; x++)
+		{
+			// 计算坐标
+			int drawX = x * pixelSize;
+			int drawY = y * pixelSize;
+			if (image.width >= image.height)
+			{
+				if (displayY == 0)
+					drawY = (y + imagePos.y) * pixelSize;
+			}
+			else
+			{
+				if (displayX == 0)
+					drawX = (x + imagePos.x) * pixelSize;
+			}
+
+			// 获取当前像素颜色
+			pixelColor = GetImageColor(image, x, y);
+
+			// 行首初始化
+			if (x == 0)
+			{
+				lastPixelColor = pixelColor;
+				similarNumber = 1;
+				recordX = drawX;
+
+				// 跳过当前循环, 等待下一个像素
+				continue;
+			}
+
+			// 获取颜色相似度
+			float similarityValue = GetColorSimilarity(pixelColor, lastPixelColor);
+
+			// 判断像素颜色相似度
+			if (similarityValue <= similarityThreshold)
+			{
+				// 增加相似像素计数
+				similarNumber += 1;
+			}
+			else
+			{
+				// 完成输出
+				fprintf(logicFile, "draw color %d %d %d %d 0 0\n",
+					lastPixelColor.r, lastPixelColor.g, lastPixelColor.b, lastPixelColor.a);
+				fprintf(logicFile, "draw rect %d %d %d %d 0 0\n",
+					recordX, drawY, pixelSize * similarNumber, pixelSize);
+
+				// 重置记数与记录
+				lastPixelColor = pixelColor;
+				similarNumber = 1;
+				recordX = drawX;
+			}
+
+			// 行尾绘制
+			if (x == image.width - 1)
+			{
+				if (similarNumber > 1)
+				{
+					fprintf(logicFile, "draw color %d %d %d %d 0 0\n",
+						lastPixelColor.r, lastPixelColor.g, lastPixelColor.b, lastPixelColor.a);
+					fprintf(logicFile, "draw rect %d %d %d %d 0 0\n",
+						recordX, drawY, pixelSize * similarNumber, pixelSize);
+				}
+				else
+				{
+					fprintf(logicFile, "draw color %d %d %d %d 0 0\n",
+						pixelColor.r, pixelColor.g, pixelColor.b, pixelColor.a);
+					fprintf(logicFile, "draw rect %d %d %d %d 0 0\n",
+						drawX, drawY, pixelSize, pixelSize);
+				}
+			}
+
+		}
+
+		// 刷新绘制缓冲区 (逻辑代码)
+		if ((y + 1) % 2 == 0)
+		{
+			fputs("drawflush display1\n", logicFile);
+
+			// 标记已刷新
+			isFlushed = 1;
+		}
+	}
+
+	// 补充 "刷新绘制缓冲区" (逻辑代码)
+	if (isFlushed == 0)
+		fputs("drawflush display1\n", logicFile);
+
+	// 停止运行 (逻辑代码)
+	fputs("stop\n\n\n", logicFile);
+
+	UnloadImage(image);
+	rectangle.x += rectangle.width;
+}
+
 int WinMain(void)
 {
 	InitWindow(1080, 810, "ImageToLogic");
@@ -357,280 +542,98 @@ int WinMain(void)
 				"Text file"
 			);
 
-			// 打开/创建逻辑代码文件
-			FILE* logicFile = fopen(filePath, "w");
-
-			Color pixelColor = { 0 };			// 当前像素颜色
-			Color lastPixelColor = { 0 };		// 上一个像素颜色
-			Vector2 imagePos = { 0 };			// 图像坐标, 用于居中修正
-			Vector2 deviation = { 0 };			// 偏移值, 用于修正裁切范围
-			Image croppedImage = { 0 };			// 裁切下的图像, 可以让循环逻辑简单一些
-			Rectangle rectangle = { 0 };		// 用于裁切的矩形
-			int newPixelSize = (int)pow(2.0, (double)(pixelSize - 1));
-
-			// 垂直翻转图像 (Mindustry 的原点在左下角)
-			ImageFlipVertical(&newImage);
-
-			// 计算偏移值
-			if (newImage.width >= newImage.height)
+			// 判断文件路径是否为空
+			if (filePath != NULL)
 			{
-				deviation.x = (float)pixelNumber / (float)newPixelSize;
-				deviation.y = (float)(pixelNumber - ((float)(pixelNumber * displayNumber - newImage.height * newPixelSize) / 2.0f)) / (float)newPixelSize;
+				// 打开/创建逻辑代码文件
+				FILE* logicFile = fopen(filePath, "w");
 
-				// 居中坐标
-				imagePos.y += (float)pixelNumber / (float)newPixelSize - deviation.y;
-			}
-			else
-			{
-				deviation.x = (float)(pixelNumber - ((float)(pixelNumber * displayNumber - newImage.width * newPixelSize) / 2.0f)) / (float)newPixelSize;
-				deviation.y = (float)pixelNumber / (float)newPixelSize;
+				Vector2 imagePos = { 0 };			// 图像坐标, 用于居中修正
+				Vector2 deviation = { 0 };			// 偏移值, 用于修正裁切范围
+				Image croppedImage = { 0 };			// 裁切下的图像
+				Rectangle rectangle = { 0 };		// 用于裁切的矩形
+				int newPixelSize = (int)pow(2.0, (double)(pixelSize - 1));
 
-				// 居中坐标
-				imagePos.x += (float)pixelNumber / (float)newPixelSize - deviation.x;
-			}
+				// 垂直翻转图像 (Mindustry 的原点在左下角)
+				ImageFlipVertical(&newImage);
 
-			// 生成逻辑代码
-			for (int displayY = 0; displayY < displayNumber; displayY++)
-			{
-				for (int displayX = 0; displayX < displayNumber; displayX++)
+				// 计算偏移值
+				if (newImage.width >= newImage.height)
 				{
-					// 重置裁切尺寸
-					rectangle.width = (float)pixelNumber / (float)newPixelSize;
-					rectangle.height = (float)pixelNumber / (float)newPixelSize;
+					deviation.x = (float)pixelNumber / (float)newPixelSize;
+					deviation.y = (float)(pixelNumber - ((float)(pixelNumber * displayNumber - newImage.height * newPixelSize) / 2.0f)) / (float)newPixelSize;
 
-					// 裁切尺寸偏移
-					if (newImage.width >= newImage.height && displayNumber > 1)
-					{
-						if (displayY == 0)
-						{
-							rectangle.width = deviation.x;
-							rectangle.height = deviation.y;
-						}
-					}
-					else
-					{
-						if (displayX == 0)
-						{
-							rectangle.width = deviation.x;
-							rectangle.height = deviation.y;
-						}
-					}
+					// 居中坐标
+					imagePos.y += (float)pixelNumber / (float)newPixelSize - deviation.y;
+				}
+				else
+				{
+					deviation.x = (float)(pixelNumber - ((float)(pixelNumber * displayNumber - newImage.width * newPixelSize) / 2.0f)) / (float)newPixelSize;
+					deviation.y = (float)pixelNumber / (float)newPixelSize;
 
-					// 防止越界裁切
-					if (rectangle.x + rectangle.width > newImage.width)
-						rectangle.width = newImage.width - rectangle.x;
-					if (rectangle.y + rectangle.height > newImage.height)
-						rectangle.height = newImage.height - rectangle.y;
-
-					// 裁切图像
-					croppedImage = ImageFromImage(newImage, rectangle);
-
-					// 分割提示
-					fprintf(logicFile, "#Display %d:\n", displayX + displayY * displayNumber + 1);
-					// 清空屏幕 (逻辑代码)
-					fputs("draw clear 86 86 102 0 0 0\ndrawflush display1\n", logicFile);
-
-					bool isFlushed = 0;						//绘制缓冲区刷新标记
-					bool couldWrite = 0;					//写入标记  0:停止写入 1:开始写入
-					float similarDistance = 10.0;			//两个颜色的距离(相似的)小于该值就看作相似颜色
-					int logicNumber = 1000;					//逻辑数量
-
-					// 计算逻辑代码数量 并 压缩逻辑代码数量
-					while (logicNumber > 998)
-					{
-						// 迭代
-						logicNumber = 0;				//重置逻辑数量计数
-						similarDistance += 0.5;			//增加相似范围
-
-						// 识别图像 并 转换为逻辑代码
-						for (int y = 0; y < croppedImage.height; y++)
-						{
-							bool isPrinted = 0;			//是否已输出逻辑代码
-							int similarNumber = 0;		//相似像素数量
-							isFlushed = 0;				//重置刷新标记
-
-							for (int x = 0; x < croppedImage.width; x++)
-							{
-								// 获取当前像素颜色
-								pixelColor = GetImageColor(croppedImage, x, y);
-
-								// 行首初始化
-								if (x == 0)
-								{
-									lastPixelColor = pixelColor;
-									similarNumber = 1;
-
-									// 跳过当前循环, 等待下一个像素
-									continue;
-								}
-
-								// 绘制标记初始化
-								isPrinted = 0;
-
-								// 获取颜色相似度
-								float distance = GetColorSimilarity(pixelColor, lastPixelColor);
-
-								// 判断像素颜色相似度
-								if (distance <= similarDistance)
-								{
-									// 增加相似像素计数
-									similarNumber += 1;
-								}
-								else
-								{
-									// 增加逻辑数量计数
-									logicNumber += 2;
-
-									// 重置记数与记录
-									lastPixelColor = pixelColor;
-									similarNumber = 1;
-
-									// 标记已绘制
-									isPrinted = 1;
-								}
-
-								// 行尾绘制
-								if (x == croppedImage.width - 1)
-									logicNumber += 2;
-							}
-
-							// 刷新绘制缓冲区 (逻辑代码)
-							if ((y + 1) % 2 == 0)
-							{
-								logicNumber += 1;
-
-								// 标记已刷新
-								isFlushed = 1;
-							}
-						}
-
-						// 补充 "刷新绘制缓冲区" (逻辑代码)
-						if (isFlushed == 0)
-							logicNumber += 1;
-						
-						logicNumber += 1;
-					}
-
-					// 写入逻辑代码
-					// 识别图像 并 转换为逻辑代码
-					for (int y = 0; y < croppedImage.height; y++)
-					{
-						bool isPrinted = 0;			//是否已输出逻辑代码
-						int similarNumber = 0;		//相似像素数量
-						int recordX = 0;			//相似像素的起始X坐标
-						isFlushed = 0;				//重置刷新标记
-
-						for (int x = 0; x < croppedImage.width; x++)
-						{
-							// 计算坐标
-							int drawX = x * newPixelSize;
-							int drawY = y * newPixelSize;
-							if (newImage.width >= newImage.height)
-							{
-								if (displayY == 0)
-									drawY = (y + imagePos.y) * newPixelSize;
-							}
-							else
-							{
-								if (displayX == 0)
-									drawX = (x + imagePos.x) * newPixelSize;
-							}
-
-							// 获取当前像素颜色
-							pixelColor = GetImageColor(croppedImage, x, y);
-
-							// 行首初始化
-							if (x == 0)
-							{
-								lastPixelColor = pixelColor;
-								similarNumber = 1;
-								recordX = drawX;
-
-								// 跳过当前循环, 等待下一个像素
-								continue;
-							}
-
-							// 绘制标记初始化
-							isPrinted = 0;
-
-							// 获取颜色相似度
-							float distance = GetColorSimilarity(pixelColor, lastPixelColor);
-
-							// 判断像素颜色相似度
-							if (distance <= similarDistance)
-							{
-								// 增加相似像素计数
-								similarNumber += 1;
-							}
-							else
-							{
-								// 完成输出
-								fprintf(logicFile, "draw color %d %d %d %d 0 0\n",
-									lastPixelColor.r, lastPixelColor.g, lastPixelColor.b, lastPixelColor.a);
-								fprintf(logicFile, "draw rect %d %d %d %d 0 0\n",
-									recordX, drawY, newPixelSize * similarNumber, newPixelSize);
-								
-								// 重置记数与记录
-								lastPixelColor = pixelColor;
-								similarNumber = 1;
-								recordX = drawX;
-
-								// 标记已绘制
-								isPrinted = 1;
-							}
-
-							// 行尾绘制
-							if (x == croppedImage.width - 1)
-							{
-								if (similarNumber > 1)
-								{
-									fprintf(logicFile, "draw color %d %d %d %d 0 0\n",
-										lastPixelColor.r, lastPixelColor.g, lastPixelColor.b, lastPixelColor.a);
-									fprintf(logicFile, "draw rect %d %d %d %d 0 0\n",
-										recordX, drawY, newPixelSize * similarNumber, newPixelSize);
-								}
-								else
-								{
-									fprintf(logicFile, "draw color %d %d %d %d 0 0\n",
-										pixelColor.r, pixelColor.g, pixelColor.b, pixelColor.a);
-									fprintf(logicFile, "draw rect %d %d %d %d 0 0\n",
-										drawX, drawY, newPixelSize, newPixelSize);
-								}
-							}
-
-						}
-
-						// 刷新绘制缓冲区 (逻辑代码)
-						if ((y + 1) % 2 == 0)
-						{
-							fputs("drawflush display1\n", logicFile);
-
-							// 标记已刷新
-							isFlushed = 1;
-						}
-					}
-
-					// 补充 "刷新绘制缓冲区" (逻辑代码)
-					if (isFlushed == 0)
-						fputs("drawflush display1\n", logicFile);
-
-					// 停止运行 (逻辑代码)
-					fputs("stop\n\n\n", logicFile);
-
-					UnloadImage(croppedImage);
-					rectangle.x += rectangle.width;
+					// 居中坐标
+					imagePos.x += (float)pixelNumber / (float)newPixelSize - deviation.x;
 				}
 
-				rectangle.x = 0.0f;
-				rectangle.y += rectangle.height;
+				// 生成逻辑代码
+				for (int displayY = 0; displayY < displayNumber; displayY++)
+				{
+					for (int displayX = 0; displayX < displayNumber; displayX++)
+					{
+						// 重置裁切尺寸
+						rectangle.width = (float)pixelNumber / (float)newPixelSize;
+						rectangle.height = (float)pixelNumber / (float)newPixelSize;
+
+						// 裁切尺寸偏移
+						if (newImage.width >= newImage.height && displayNumber > 1)
+						{
+							if (displayY == 0)
+							{
+								rectangle.width = deviation.x;
+								rectangle.height = deviation.y;
+							}
+						}
+						else
+						{
+							if (displayX == 0)
+							{
+								rectangle.width = deviation.x;
+								rectangle.height = deviation.y;
+							}
+						}
+
+						// 防止越界裁切
+						if (rectangle.x + rectangle.width > newImage.width)
+							rectangle.width = newImage.width - rectangle.x;
+						if (rectangle.y + rectangle.height > newImage.height)
+							rectangle.height = newImage.height - rectangle.y;
+
+						// 裁切图像
+						croppedImage = ImageFromImage(newImage, rectangle);
+
+						// 分割提示
+						fprintf(logicFile, "#Display %d:\n", displayX + displayY * displayNumber + 1);
+						// 清空屏幕 (逻辑代码)
+						fputs("draw clear 86 86 102 0 0 0\ndrawflush display1\n", logicFile);
+
+						// 获取相似阈值
+						float similarityThreshold = GetColorSimilarityThreshold(croppedImage, 10.0);
+
+						// 生成逻辑代码
+						GenerateLogic(logicFile, croppedImage, rectangle, imagePos, displayX, displayY, newPixelSize, similarityThreshold);
+
+						rectangle.x = 0.0f;
+						rectangle.y += rectangle.height;
+					}
+				}
+
+				// 还原图像方向
+				ImageFlipVertical(&newImage);
+
+				// 关闭文件 清空指针
+				fclose(logicFile);
+				logicFile = NULL;
 			}
-
-			// 还原图像方向
-			ImageFlipVertical(&newImage);
-
-			// 关闭文件 清空指针
-			fclose(logicFile);
-			logicFile = NULL;
 
 			generateLogic = 0;
 		}
